@@ -1,9 +1,9 @@
 # This is workflow name
 name: Hello
 
-on: 
-  push:
-    branches: [main]
+on:
+  workflow_dispatch:
+    
 
 jobs:
   greet:
