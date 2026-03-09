@@ -1,13 +1,18 @@
 name: Deploy Flask app
 
 on:
-    workflow_dispatch:
+    workflow_run:
+      workflows: ["Docker Build & Push"]
+      types: [completed]
+      branches:
+        - main
 
 
 jobs:
     deploy:
         env:
             DOCKERHUB_USER: ${{vars.DOCKERHUB_USER }}
+            DOCKER_TAG: ${{ github.sha }}
 
         runs-on: self-hosted
 
