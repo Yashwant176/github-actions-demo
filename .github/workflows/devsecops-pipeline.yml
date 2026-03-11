@@ -1,33 +1,34 @@
 name: DevSecOps End to End Pipeline
 
-on: 
-    push:
-        branches: [main]
+on:
+  push:
+    branches:
+      - main
 
 jobs:
-    Code-Quality:
-        uses: ./.github/workflows/code-quality.yml
+  code-quality:
+    uses: ./.github/workflows/code-quality.yml
 
-    secrets-scan:
-        uses: ./.github/workflows/secrets-scan.yml
-    
-    dependency-scan:
-        uses: ./.github/workflows/dependency-scan.yml
+  secrets-scan:
+    uses: ./.github/workflows/secrets-scan.yml
 
-    docker-scan:
-        uses: ./.github/workflows/docker-lint.yml
+  dependency-scan:
+    uses: ./.github/workflows/dependency-scan.yml
 
-    build:
-        needs: [docker-scan, dependency-scan, secrets-scan, Code-Quality]
-        uses: ./.github/workflows/docker-build-push.yml
-        secrets: inherit
+  docker-scan:
+    uses: ./.github/workflows/docker-lint.yml
 
-    trivy:
-        needs: [build]
-        uses: ./.github/workflows/image-scan.yml
-        secrets: inherit
+  build:
+    needs: [code-quality, secrets-scan, dependency-scan, docker-scan]
+    uses: ./.github/workflows/docker-build-push.yml
+    secrets: inherit
 
-    deploy:
-        needs: [trivy]
-        uses: ./.github/workflows/deploy-to-server.yml
-        secrets: inherit
+  image-scan:
+    needs: [build]
+    uses: ./.github/workflows/image-scan.yml
+    secrets: inherit
+
+  deploy:
+    needs: [image-scan]
+    uses: ./.github/workflows/deploy-to-server.yml
+    secrets: inherit
