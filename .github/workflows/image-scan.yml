@@ -1,28 +1,26 @@
 name: Image Scanner
 
 on:
-    workflow_call:
+  workflow_call:
 
 jobs:
-    image-scanner:
-        runs-on: ubuntu-latest
+  image-scanner:
+    runs-on: ubuntu-latest
 
-        steps:
-            - name: Checkout Code
-              uses: actions/checkout@v4
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-            - name: Login to Docker Hub
-              uses: docker/login-action@v3
-
-              with: 
-                username: ${{vars.DOCKERHUB_USER}}
-                password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-            - name: Trivy Scanner
-              uses: aquasecurity/trivy-action@0.35.0
-              with:
-                image-ref: ${{vars.DOCKERHUB_USER}}/github-actions-app:${{github.sha}}
-                severity: 'CRITICAL, HIGH'
-                exit-code: '1'
-                trivyignores: ${{github.workspace}}/.trivyignore
+      - name: Trivy Scanner
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: ${{ vars.DOCKERHUB_USER }}/github-actions-app:${{ github.sha }}
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+          trivyignores: .trivyignore
