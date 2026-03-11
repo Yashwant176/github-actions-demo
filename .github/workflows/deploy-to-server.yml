@@ -1,54 +1,36 @@
-name: Deplot to Server
+name: Deploy to Server
 
 on:
-    workflow_call
+  workflow_call:
 
 jobs:
-    deploy:
-        runs-on: ubuntu-latest
-        env:
-            DOCKERHUB_USER: ${{vars.DOCKERHUB_USER }}
-            DOCKER_TAG: ${{ github.event.workflow_run.head_sha }}
-            
-        steps:
-            - name: Code Checkout
-              uses: actions/checkout@v4
+  deploy:
+    runs-on: ubuntu-latest
 
-            - name: Set DOCKER_TAG environment variable
-              run: |
-                echo "DOCKER_TAG=${{github.event.workflow_run.head_sha}}" >> $GITHUB_ENV
+    env:
+      DOCKERHUB_USER: ${{ vars.DOCKERHUB_USER }}
+      DOCKER_TAG: ${{ github.sha }}
 
-            - name: SSH to pro Server & create app folder
-              uses: appleboy/ssh-action@v1.0.3
-              with:
-                host: ${{ secrets.EC2_SSH_HOST }}
-                username: ${{ secrets.EC2_SSH_USER }}
-                key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-                script: |
-                    echo "Installing required packages & folders"
-                    sudo apt-get update && sudo apt-get install docker.io docker-compose-v2 -y
-                    sudo usermod -aG docker $USER && newgrp docker
-                    mkdir -p devops
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v4
 
-            - name: Copy the docker compose file
-              uses: appleboy/scp-action@v1
-              with:
-                host: ${{ secrets.EC2_SSH_HOST }}
-                username: ${{ secrets.EC2_SSH_USER }}
-                key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-                source: docker-compose.yml
-                target: ~/devops/
-            
-            - name: SSH to pro Server & run the app
-              uses: appleboy/ssh-action@v1.0.3
-              with:
-                host: ${{ secrets.EC2_SSH_HOST }}
-                username: ${{ secrets.EC2_SSH_USER }}
-                key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-                script: |
-                    echo "Running app"
-                    export DOCKERHUB_USER= ${{vars.DOCKERHUB_USER }}
-                    export DOCKER_TAG= ${{ github.event.workflow_run.head_sha }}
-                    export DOCKER_TAG=${{env.DOCKER_TAG}}
-                    echo ${{secrets.DOCKERHUB_TOKEN}} | docker login -u ${{vars.DOCKERHUB_USER}} --password-stdin
-                    cd ~/devops && docker compose down && docker compose up -d --build --force-recreate
+      - name: SSH to Server & run the app
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_SSH_HOST }}
+          username: ${{ secrets.EC2_SSH_USER }}
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          script: |
+            echo "Running app"
+
+            export DOCKERHUB_USER=${{ vars.DOCKERHUB_USER }}
+            export DOCKER_TAG=${{ github.sha }}
+
+            echo ${{ secrets.DOCKERHUB_TOKEN }} | docker login -u $DOCKERHUB_USER --password-stdin
+
+            cd ~/devops
+
+            docker compose pull
+            docker compose down
+            docker compose up -d --force-recreate
